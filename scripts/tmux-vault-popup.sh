@@ -78,9 +78,9 @@ main() {
     require_command fzf
 
     local kv_path
-    kv_path="$(read_tmux_option '@tmux-vault:kv-path' 'secret')"
+    kv_path="$(read_tmux_option '@tmux-vault:kv-path' 'kv')"
     kv_path="${kv_path%/}"
-    [[ -z "$kv_path" ]] && kv_path="secret"
+    [[ -z "$kv_path" ]] && kv_path="kv"
 
     mapfile -t relative_keys < <(vault_kv_walk "$kv_path" || true)
 

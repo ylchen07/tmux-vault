@@ -30,7 +30,7 @@ get_option() {
 if [[ "${1:-}" == "--install" ]]; then
     ensure_option '@tmux-vault:popup-width' '80%'
     ensure_option '@tmux-vault:popup-height' '80%'
-    ensure_option '@tmux-vault:kv-path' 'secret'
+    ensure_option '@tmux-vault:kv-path' 'kv'
     exit 0
 fi
 

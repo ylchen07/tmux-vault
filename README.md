@@ -18,7 +18,7 @@ Press `prefix + I` to install the plugin.
 
 After installation the plugin registers the key binding `prefix + V` that opens a
 popup listing every secret found under the configured Vault KV path (defaults to
-`secret`). Use the arrow keys or typing to narrow down the list; the secret
+`kv`). Use the arrow keys or typing to narrow down the list; the secret
 content is visible in the preview pane.
 
 Hit <kbd>Enter</kbd> to close the popup and show the selected path in the tmux
@@ -29,8 +29,8 @@ status line, or <kbd>Esc</kbd> to cancel.
 All options can be customised from your `tmux.conf`:
 
 ```
-# Base path to explore within Vault (defaults to "secret")
-set -g @tmux-vault:kv-path 'secret/app'
+# Base path to explore within Vault (defaults to "kv")
+set -g @tmux-vault:kv-path 'kv/app'
 
 # Popup size (defaults to 80% × 80%)
 set -g @tmux-vault:popup-width '85%'
