@@ -30,6 +30,21 @@ require_command() {
     fi
 }
 
+ensure_vault_login() {
+    if vault token lookup >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local message="tmux-vault: Vault CLI not authenticated. Run 'vault login'."
+    if command -v tmux >/dev/null 2>&1; then
+        tmux display-message "$message"
+    fi
+    printf '%s\n' "$message" >&2
+    printf 'Press Enter to close... ' >&2
+    read -r _ 2>/dev/null || true
+    exit 1
+}
+
 vault_kv_walk() {
     local base="$1"
     local relative="${2:-}"
@@ -76,6 +91,7 @@ vault_kv_walk() {
 main() {
     require_command vault
     require_command fzf
+    ensure_vault_login
 
     local kv_path
     kv_path="$(read_tmux_option '@tmux-vault:kv-path' 'kv')"

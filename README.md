@@ -24,6 +24,9 @@ content is visible in the preview pane.
 Hit <kbd>Enter</kbd> to close the popup and show the selected path in the tmux
 status line, or <kbd>Esc</kbd> to cancel.
 
+Ensure the `vault` CLI is authenticated (`vault login`) before triggering the
+popup; the plugin exits early with a helpful message if no token is present.
+
 ## Configuration
 
 All options can be customised from your `tmux.conf`:
