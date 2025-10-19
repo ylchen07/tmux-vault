@@ -27,6 +27,14 @@ status line, or <kbd>Esc</kbd> to cancel.
 Ensure the `vault` CLI is authenticated (`vault login`) before triggering the
 popup; the plugin exits early with a helpful message if no token is present.
 
+### Dependencies
+
+The popup relies on three CLIs being available in `PATH`:
+
+- `vault` — authenticated with a valid token that can list/read the configured KV path.
+- `fzf` — provides the interactive selector and preview pane.
+- `jq` — parses JSON responses from `vault kv list -format=json`.
+
 ## Configuration
 
 All options can be customised from your `tmux.conf`:

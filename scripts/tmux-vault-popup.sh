@@ -17,16 +17,26 @@ read_tmux_option() {
     printf '%s' "$default_value"
 }
 
+tmux_message() {
+    local message="$1"
+    if command -v tmux >/dev/null 2>&1 && [[ -n "${TMUX:-}" ]]; then
+        tmux display-message "$message"
+    fi
+}
+
+fatal_with_prompt() {
+    local message="$1"
+    tmux_message "$message"
+    printf '%s\n' "$message" >&2
+    printf 'Press Enter to close... ' >&2
+    read -r _ 2>/dev/null || true
+    exit 1
+}
+
 require_command() {
     local binary="$1"
     if ! command -v "$binary" >/dev/null 2>&1; then
-        if command -v tmux >/dev/null 2>&1; then
-            tmux display-message "tmux-vault: missing dependency '$binary'"
-        fi
-        printf 'tmux-vault: missing dependency "%s"\n' "$binary" >&2
-        printf 'Press Enter to close... ' >&2
-        read -r _ 2>/dev/null || true
-        exit 1
+        fatal_with_prompt "tmux-vault: missing dependency \"$binary\""
     fi
 }
 
@@ -35,35 +45,40 @@ ensure_vault_login() {
         return 0
     fi
 
-    local message="tmux-vault: Vault CLI not authenticated. Run 'vault login'."
-    if command -v tmux >/dev/null 2>&1; then
-        tmux display-message "$message"
-    fi
-    printf '%s\n' "$message" >&2
-    printf 'Press Enter to close... ' >&2
-    read -r _ 2>/dev/null || true
-    exit 1
+    fatal_with_prompt "tmux-vault: Vault CLI not authenticated. Run 'vault login'."
 }
 
 vault_kv_walk() {
     local base="$1"
     local relative="${2:-}"
-    local target="$base"
+    local target="${base%/}"
     if [[ -n "$relative" ]]; then
-        target="${base%/}/${relative}"
+        target="${target}/${relative}"
     fi
 
-    local raw_list
-    if ! raw_list="$(vault kv list "$target" 2>/dev/null)"; then
+    local response
+    if ! response="$(vault kv list -format=json "$target" 2>&1)"; then
+        fatal_with_prompt "tmux-vault: failed to list \"$target\": ${response}"
+    fi
+
+    local jq_output
+    local jq_status=0
+    jq_output="$(printf '%s\n' "$response" | jq -r '(.data.keys // .keys)[]?')" || jq_status=$?
+    if [[ $jq_status -ne 0 ]]; then
+        fatal_with_prompt "tmux-vault: unable to parse response for \"$target\"."
+    fi
+
+    local -a keys=()
+    if [[ -n "$jq_output" ]]; then
+        mapfile -t keys < <(printf '%s\n' "$jq_output")
+    fi
+
+    if [[ "${#keys[@]}" -eq 0 ]]; then
         return 0
     fi
 
-    raw_list="$(printf '%s\n' "$raw_list" | tail -n +3)"
-    if [[ -z "$raw_list" ]]; then
-        return 0
-    fi
-
-    while IFS= read -r entry; do
+    local entry
+    for entry in "${keys[@]}"; do
         entry="${entry//$'\r'/}"
         entry="${entry##+([[:space:]])}"
         entry="${entry%%+([[:space:]])}"
@@ -85,12 +100,13 @@ vault_kv_walk() {
                 printf '%s\n' "$entry"
             fi
         fi
-    done <<<"$raw_list"
+    done
 }
 
 main() {
     require_command vault
     require_command fzf
+    require_command jq
     ensure_vault_login
 
     local kv_path
@@ -128,9 +144,7 @@ main() {
     fi
 
     if [[ -n "$selection" ]]; then
-        if command -v tmux >/dev/null 2>&1; then
-            tmux display-message "tmux-vault: selected ${kv_path}/${selection}"
-        fi
+        tmux_message "tmux-vault: selected ${kv_path}/${selection}"
     fi
 }
 
